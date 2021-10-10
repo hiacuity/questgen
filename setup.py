@@ -1,12 +1,12 @@
 from distutils.core import setup
 
-setup(name='Questgen',
-      version='1.0.0',
+setup(name='questgen',
+      version='2.0.0',
       description='Question generator from any text',
-      author='Questgen contributors',
-      author_email='vaibhavtiwarifu@gmail.com',
+      author='Nayana Hettiarachchi',
+      author_email='nayana.hettiarachchi@hiacuity.com',
       packages=['questgen', 'questgen.encoding', 'questgen.mcq'],
-      url="https://github.com/ramsrigouthamg/Questgen.ai",
+      url="https://github.com/hiacuity/questgen",
       install_requires=[
           'numpy==1.19.5',
           'transformers==2.4.1',
