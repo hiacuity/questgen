@@ -1,3 +1,8 @@
+# Version 2.0
+
+cleaned up the code and made more developer friendly resolved the issue reported 
+in primary repo the changes are now backward incompatible due to compliance standards
+
 # Questgen AI   <br>
 
 ## Try advanced question generation models for free:  https://questgen.ai/  
