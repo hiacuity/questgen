@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='questgen',
-      version='2.0.0',
+      version='2.1.0',
       description='Question generator from any text',
       author='Nayana Hettiarachchi',
       author_email='nayana.hettiarachchi@hiacuity.com',
@@ -9,7 +9,7 @@ setup(name='questgen',
       url="https://github.com/hiacuity/questgen",
       install_requires=[
           'numpy==1.19.5',
-          'transformers==2.4.1',
+          'transformers==4.11.3',
           'flashtext==2.7',
           'nltk==3.6.3',
           'pandas==1.3.3',
