@@ -1,4 +1,5 @@
 import torch
+from similarity.normalized_levenshtein import NormalizedLevenshtein
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 import random
 import spacy
@@ -6,12 +7,7 @@ from sense2vec import Sense2Vec
 import nltk
 import numpy
 from nltk import FreqDist
-
-nltk.download('brown')
-nltk.download('stopwords')
-nltk.download('popular')
 from nltk.corpus import brown
-from similarity.normalized_levenshtein import NormalizedLevenshtein
 from questgen.encoding.encoding import beam_search_decoding
 from questgen.mcq.mcq import tokenize_sentences
 from questgen.mcq.mcq import get_keywords
@@ -19,6 +15,10 @@ from questgen.mcq.mcq import get_sentences_for_keyword
 from questgen.mcq.mcq import generate_questions_mcq
 from questgen.mcq.mcq import generate_normal_questions
 import time
+
+nltk.download('brown')
+nltk.download('stopwords')
+nltk.download('popular')
 
 
 class QGen:
