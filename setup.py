@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='questgen',
-      version='2.3.0',
+      version='2.4.1',
       description='Question generator from any text',
       author='Nayana Hettiarachchi',
       author_email='nayana.hettiarachchi@hiacuity.com',

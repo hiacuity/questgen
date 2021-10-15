@@ -3,11 +3,6 @@ import random
 from collections import OrderedDict
 import string
 import pke
-import nltk
-
-nltk.download('brown')
-nltk.download('stopwords')
-nltk.download('popular')
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize
 from flashtext import KeywordProcessor

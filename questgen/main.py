@@ -4,7 +4,6 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 import random
 import spacy
 from sense2vec import Sense2Vec
-import nltk
 import numpy
 from nltk import FreqDist
 from nltk.corpus import brown
@@ -16,10 +15,6 @@ from questgen.mcq.mcq import generate_questions_mcq
 from questgen.mcq.mcq import generate_normal_questions
 import time
 
-nltk.download('brown')
-nltk.download('stopwords')
-nltk.download('popular')
-
 
 class QGen:
 
@@ -29,7 +24,7 @@ class QGen:
         model = T5ForConditionalGeneration.from_pretrained('Parth/result')
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to(device)
-        # model.eval()
+
         self.device = device
         self.model = model
         self.nlp = spacy.load('en_core_web_sm')
@@ -54,20 +49,7 @@ class QGen:
         }
 
         text = inp['input_text']
-        sentences = tokenize_sentences(text)
-        joiner = " "
-        modified_text = joiner.join(sentences)
-
-        keywords = get_keywords(self.nlp, modified_text, inp['max_questions'], self.s2v, self.fdist,
-                                self.normalized_levenshtein, len(sentences))
-
-        keyword_sentence_mapping = get_sentences_for_keyword(keywords, sentences)
-
-        for k in keyword_sentence_mapping.keys():
-            text_snippet = " ".join(keyword_sentence_mapping[k][:3])
-            keyword_sentence_mapping[k] = text_snippet
-
-        final_output = {}
+        final_output, keyword_sentence_mapping, modified_text = self.tokenize_local(inp, text)
 
         if len(keyword_sentence_mapping.keys()) == 0:
             return final_output
@@ -96,20 +78,7 @@ class QGen:
         }
 
         text = inp['input_text']
-        sentences = tokenize_sentences(text)
-        joiner = " "
-        modified_text = joiner.join(sentences)
-
-        keywords = get_keywords(self.nlp, modified_text, inp['max_questions'], self.s2v, self.fdist,
-                                self.normalized_levenshtein, len(sentences))
-
-        keyword_sentence_mapping = get_sentences_for_keyword(keywords, sentences)
-
-        for k in keyword_sentence_mapping.keys():
-            text_snippet = " ".join(keyword_sentence_mapping[k][:3])
-            keyword_sentence_mapping[k] = text_snippet
-
-        final_output = {}
+        final_output, keyword_sentence_mapping, modified_text = self.tokenize_local(inp, text)
 
         if len(keyword_sentence_mapping.keys()) == 0:
             print('ZERO')
@@ -127,6 +96,19 @@ class QGen:
             torch.cuda.empty_cache()
 
         return final_output
+
+    def tokenize_local(self, inp, text):
+        sentences = tokenize_sentences(text)
+        joiner = " "
+        modified_text = joiner.join(sentences)
+        keywords = get_keywords(self.nlp, modified_text, inp['max_questions'], self.s2v, self.fdist,
+                                self.normalized_levenshtein, len(sentences))
+        keyword_sentence_mapping = get_sentences_for_keyword(keywords, sentences)
+        for k in keyword_sentence_mapping.keys():
+            text_snippet = " ".join(keyword_sentence_mapping[k][:3])
+            keyword_sentence_mapping[k] = text_snippet
+        final_output = {}
+        return final_output, keyword_sentence_mapping, modified_text
 
     def paraphrase(self, payload):
         start = time.time()
@@ -154,10 +136,6 @@ class QGen:
             early_stopping=True
         )
 
-        #         print ("\nOriginal Question ::")
-        #         print (text)
-        #         print ("\n")
-        #         print ("Paraphrased Questions :: ")
         final_outputs = []
         for beam_output in beam_outputs:
             sent = self.tokenizer.decode(beam_output, skip_special_tokens=True, clean_up_tokenization_spaces=True)

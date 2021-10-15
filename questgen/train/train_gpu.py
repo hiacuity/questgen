@@ -2,10 +2,6 @@ import argparse
 import os
 import logging
 import random
-
-import nltk
-
-nltk.download('punkt')
 import pandas as pd
 import numpy as np
 import torch
