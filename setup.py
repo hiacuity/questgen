@@ -8,7 +8,7 @@ setup(name='questgen',
       packages=['questgen', 'questgen.encoding', 'questgen.mcq'],
       url="https://github.com/hiacuity/questgen",
       install_requires=[
-          'numpy==1.19.5',
+          'numpy==1.22.0',
           'transformers==4.11.3',
           'flashtext==2.7',
           'nltk==3.6.3',
