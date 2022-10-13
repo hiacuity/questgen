@@ -60,9 +60,7 @@ class T5FineTuner(pl.LightningModule):
             decoder_attention_mask=batch['target_mask']
         )
 
-        loss = outputs[0]
-
-        return loss
+        return outputs[0]
 
     def training_step(self, batch, batch_idx):
         loss = self._step(batch)
@@ -91,14 +89,23 @@ class T5FineTuner(pl.LightningModule):
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
             {
-                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+                "params": [
+                    p
+                    for n, p in model.named_parameters()
+                    if all(nd not in n for nd in no_decay)
+                ],
                 "weight_decay": self.hparams.weight_decay,
             },
             {
-                "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+                "params": [
+                    p
+                    for n, p in model.named_parameters()
+                    if any(nd in n for nd in no_decay)
+                ],
                 "weight_decay": 0.0,
             },
         ]
+
         optimizer = AdamW(optimizer_grouped_parameters, lr=self.hparams.learning_rate, eps=self.hparams.adam_epsilon)
         self.opt = optimizer
         return [optimizer]
@@ -112,9 +119,10 @@ class T5FineTuner(pl.LightningModule):
         self.lr_scheduler.step()
 
     def get_tqdm_dict(self):
-        tqdm_dict = {"loss": "{:.3f}".format(self.trainer.avg_loss), "lr": self.lr_scheduler.get_last_lr()[-1]}
-
-        return tqdm_dict
+        return {
+            "loss": "{:.3f}".format(self.trainer.avg_loss),
+            "lr": self.lr_scheduler.get_last_lr()[-1],
+        }
 
     def train_dataloader(self):
         train_dataset = get_dataset(tokenizer=self.tokenizer, type_path="boolq_train", args=self.hparams)
@@ -147,7 +155,7 @@ class LoggingCallback(pl.Callback):
             # Log results
             for key in sorted(metrics):
                 if key not in ["log", "progress_bar"]:
-                    logger.info("{} = {}\n".format(key, str(metrics[key])))
+                    logger.info(f"{key} = {str(metrics[key])}\n")
 
     def on_test_end(self, trainer, pl_module):
         logger.info("***** Test results *****")
@@ -160,8 +168,8 @@ class LoggingCallback(pl.Callback):
             with open(output_test_results_file, "w") as writer:
                 for key in sorted(metrics):
                     if key not in ["log", "progress_bar"]:
-                        logger.info("{} = {}\n".format(key, str(metrics[key])))
-                        writer.write("{} = {}\n".format(key, str(metrics[key])))
+                        logger.info(f"{key} = {str(metrics[key])}\n")
+                        writer.write(f"{key} = {str(metrics[key])}\n")
 
 
 args_dict = dict(
@@ -228,14 +236,11 @@ class BooleanDataset(Dataset):
     def _build(self):
         for idx in range(len(self.data)):
             passage, true_false, target = self.data.loc[idx, self.passage_column], self.data.loc[idx, self.true_false], \
-                                          self.data.loc[idx, self.target_column]
+                                              self.data.loc[idx, self.target_column]
             true_false = str(true_false)
-            if true_false.lower() == "true":
-                true_false = "yes"
-            else:
-                true_false = "no"
+            true_false = "yes" if true_false.lower() == "true" else "no"
             # input_ = "paraphrase: "+ input_ + ' </s>'
-            input_ = "truefalse: %s passage: %s </s>" % (true_false, passage)
+            input_ = f"truefalse: {true_false} passage: {passage} </s>"
             target = target + " </s>"
 
             # tokenize inputs
