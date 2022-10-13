@@ -51,9 +51,7 @@ class QGen:
         text = inp['input_text']
         final_output, keyword_sentence_mapping, modified_text = self.tokenize_local(inp, text)
 
-        if len(keyword_sentence_mapping.keys()) == 0:
-            return final_output
-        else:
+        if len(keyword_sentence_mapping.keys()) != 0:
             try:
                 generated_questions = generate_questions_mcq(keyword_sentence_mapping, self.device, self.tokenizer,
                                                              self.model, self.s2v, self.normalized_levenshtein)
@@ -69,7 +67,7 @@ class QGen:
             if torch.device == 'cuda':
                 torch.cuda.empty_cache()
 
-            return final_output
+        return final_output
 
     def predict_shortq(self, payload):
         inp = {
@@ -121,7 +119,7 @@ class QGen:
         num = inp['max_questions']
 
         self.sentence = text
-        self.text = "paraphrase: " + self.sentence + " </s>"
+        self.text = f"paraphrase: {self.sentence} </s>"
 
         encoding = self.tokenizer.encode_plus(self.text, pad_to_max_length=True, return_tensors="pt")
         input_ids, attention_masks = encoding["input_ids"].to(self.device), encoding["attention_mask"].to(self.device)
@@ -142,13 +140,14 @@ class QGen:
             if sent.lower() != self.sentence.lower() and sent not in final_outputs:
                 final_outputs.append(sent)
 
-        output = {}
-        output['Question'] = text
-        output['Count'] = num
-        output['Paraphrased Questions'] = final_outputs
+        output = {
+            'Question': text,
+            'Count': num,
+            'Paraphrased Questions': final_outputs,
+        }
 
         for i, final_output in enumerate(final_outputs):
-            print("{}: {}".format(i, final_output))
+            print(f"{i}: {final_output}")
 
         if torch.device == 'cuda':
             torch.cuda.empty_cache()
@@ -191,7 +190,7 @@ class BoolQGen:
         joiner = " "
         modified_text = joiner.join(sentences)
         answer = self.random_choice()
-        form = "truefalse: %s passage: %s </s>" % (modified_text, answer)
+        form = f"truefalse: {modified_text} passage: {answer} </s>"
 
         encoding = self.tokenizer.encode_plus(form, return_tensors="pt")
         input_ids, attention_masks = encoding["input_ids"].to(self.device), encoding["attention_mask"].to(self.device)
@@ -200,12 +199,7 @@ class BoolQGen:
         if torch.device == 'cuda':
             torch.cuda.empty_cache()
 
-        final = {}
-        final['Text'] = text
-        final['Count'] = num
-        final['Boolean Questions'] = output
-
-        return final
+        return {'Text': text, 'Count': num, 'Boolean Questions': output}
 
 
 class AnswerPredictor:
@@ -226,8 +220,11 @@ class AnswerPredictor:
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
 
-    def greedy_decoding(inp_ids, attn_mask, model, tokenizer):
-        greedy_output = model.generate(input_ids=inp_ids, attention_mask=attn_mask, max_length=256)
+    def greedy_decoding(self, attn_mask, model, tokenizer):
+        greedy_output = model.generate(
+            input_ids=self, attention_mask=attn_mask, max_length=256
+        )
+
         Question = tokenizer.decode(greedy_output[0], skip_special_tokens=True, clean_up_tokenization_spaces=True)
         return Question.strip().capitalize()
 
@@ -240,12 +237,10 @@ class AnswerPredictor:
 
         context = inp["input_text"]
         question = inp["input_question"]
-        input = "question: %s <s> context: %s </s>" % (question, context)
+        input = f"question: {question} <s> context: {context} </s>"
 
         encoding = self.tokenizer.encode_plus(input, return_tensors="pt")
         input_ids, attention_masks = encoding["input_ids"].to(self.device), encoding["attention_mask"].to(self.device)
         greedy_output = self.model.generate(input_ids=input_ids, attention_mask=attention_masks, max_length=256)
         Question = self.tokenizer.decode(greedy_output[0], skip_special_tokens=True, clean_up_tokenization_spaces=True)
-        output = Question.strip().capitalize()
-
-        return output
+        return Question.strip().capitalize()

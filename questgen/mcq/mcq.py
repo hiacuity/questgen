@@ -11,15 +11,12 @@ from flashtext import KeywordProcessor
 def mcq_available(word, s2v):
     word = word.replace(" ", "_")
     sense = s2v.get_best_sense(word)
-    if sense is not None:
-        return True
-    else:
-        return False
+    return sense is not None
 
 
 def edits(word):
     """All edits that are one edit away from `word`."""
-    letters = 'abcdefghijklmnopqrstuvwxyz ' + string.punctuation
+    letters = f'abcdefghijklmnopqrstuvwxyz {string.punctuation}'
     splits = [(word[:i], word[i:]) for i in range(len(word) + 1)]
     deletes = [L + R[1:] for L, R in splits if R]
     transposes = [L + R[1] + R[0] + R[2:] for L, R in splits if len(R) > 1]
@@ -53,9 +50,7 @@ def sense2vec_get_words(word, s2v):
             output.append(append_word.title())
             compare_list.append(append_word_processed)
 
-    out = list(OrderedDict.fromkeys(output))
-
-    return out
+    return list(OrderedDict.fromkeys(output))
 
 
 def get_options(answer, s2v):
@@ -92,15 +87,11 @@ def get_sentences_for_keyword(keywords, sentences):
         for key in keywords_found:
             keyword_sentences[key].append(sentence)
 
-    for key in keyword_sentences.keys():
-        values = keyword_sentences[key]
+    for key, values in keyword_sentences.items():
         values = sorted(values, key=len, reverse=True)
         keyword_sentences[key] = values
 
-    delete_keys = []
-    for k in keyword_sentences.keys():
-        if len(keyword_sentences[k]) == 0:
-            delete_keys.append(k)
+    delete_keys = [k for k, v in keyword_sentences.items() if len(v) == 0]
     for del_key in delete_keys:
         del keyword_sentences[del_key]
 
@@ -109,13 +100,12 @@ def get_sentences_for_keyword(keywords, sentences):
 
 def is_far(words_list, current_word, thresh, normalized_levenshtein):
     threshold = thresh
-    score_list = []
-    for word in words_list:
-        score_list.append(normalized_levenshtein.distance(word.lower(), current_word.lower()))
-    if min(score_list) >= threshold:
-        return True
-    else:
-        return False
+    score_list = [
+        normalized_levenshtein.distance(word.lower(), current_word.lower())
+        for word in words_list
+    ]
+
+    return min(score_list) >= threshold
 
 
 def filter_phrases(phrase_keys, maximum, normalized_levenshtein):
@@ -151,9 +141,7 @@ def get_nouns_multipart_title(text):
 
     keyphrase = extractor.get_n_best(n=10)
 
-    for key in keyphrase:
-        out.append(key[0])
-
+    out.extend(key[0] for key in keyphrase)
     return out
 
 
@@ -163,11 +151,7 @@ def get_phrases(doc):
         phrase = np.text
         len_phrase = len(phrase.split())
         if len_phrase > 1:
-            if phrase not in phrases:
-                phrases[phrase] = 1
-            else:
-                phrases[phrase] = phrases[phrase] + 1
-
+            phrases[phrase] = 1 if phrase not in phrases else phrases[phrase] + 1
     phrase_keys = list(phrases.keys())
     phrase_keys = sorted(phrase_keys, key=lambda x: len(x), reverse=True)
     phrase_keys = phrase_keys[:50]
@@ -204,8 +188,8 @@ def generate_questions_mcq(keyword_sent_mapping, device, tokenizer, model, sense
     answers = keyword_sent_mapping.keys()
     for answer in answers:
         txt = keyword_sent_mapping[answer]
-        context = "context: " + txt
-        text = context + " " + "answer: " + answer + " </s>"
+        context = f"context: {txt}"
+        text = f"{context} answer: {answer} </s>"
         batch_text.append(text)
 
     encoding = tokenizer.batch_encode_plus(batch_text, pad_to_max_length=True, return_tensors="pt")
@@ -218,20 +202,21 @@ def generate_questions_mcq(keyword_sent_mapping, device, tokenizer, model, sense
                               attention_mask=attention_masks,
                               max_length=150)
 
-    output_array = {}
-    output_array["questions"] = []
+    output_array = {"questions": []}
     #     print(outs)
     for index, val in enumerate(answers):
-        individual_question = {}
         out = outs[index, :]
         dec = tokenizer.decode(out, skip_special_tokens=True, clean_up_tokenization_spaces=True)
 
         Question = dec.replace("question:", "")
         Question = Question.strip()
-        individual_question["question_statement"] = Question
-        individual_question["question_type"] = "MCQ"
-        individual_question["answer"] = val
-        individual_question["id"] = index + 1
+        individual_question = {
+            "question_statement": Question,
+            "question_type": "MCQ",
+            "answer": val,
+            "id": index + 1,
+        }
+
         individual_question["options"], individual_question["options_algorithm"] = get_options(val, sense2vec)
 
         individual_question["options"] = filter_phrases(individual_question["options"], 10, normalized_levenshtein)
@@ -251,8 +236,8 @@ def generate_normal_questions(keyword_sent_mapping, device, tokenizer, model):  
     answers = keyword_sent_mapping.keys()
     for answer in answers:
         txt = keyword_sent_mapping[answer]
-        context = "context: " + txt
-        text = context + " " + "answer: " + answer + " </s>"
+        context = f"context: {txt}"
+        text = f"{context} answer: {answer} </s>"
         batch_text.append(text)
 
     encoding = tokenizer.batch_encode_plus(batch_text, pad_to_max_length=True, return_tensors="pt")
@@ -265,21 +250,20 @@ def generate_normal_questions(keyword_sent_mapping, device, tokenizer, model):  
                               attention_mask=attention_masks,
                               max_length=150)
 
-    output_array = {}
-    output_array["questions"] = []
-
+    output_array = {"questions": []}
     for index, val in enumerate(answers):
-        individual_quest = {}
         out = outs[index, :]
         dec = tokenizer.decode(out, skip_special_tokens=True, clean_up_tokenization_spaces=True)
 
         Question = dec.replace('question:', '')
         Question = Question.strip()
 
-        individual_quest['Question'] = Question
-        individual_quest['Answer'] = val
-        individual_quest["id"] = index + 1
-        individual_quest["context"] = keyword_sent_mapping[val]
+        individual_quest = {
+            'Question': Question,
+            'Answer': val,
+            "id": index + 1,
+            "context": keyword_sent_mapping[val],
+        }
 
         output_array["questions"].append(individual_quest)
 
