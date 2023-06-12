@@ -9,7 +9,7 @@ setup(name='questgen',
       url="https://github.com/hiacuity/questgen",
       install_requires=[
           'numpy==1.19.5',
-          'transformers==4.11.3',
+          'transformers==4.30.0',
           'flashtext==2.7',
           'nltk==3.6.3',
           'pandas==1.3.3',
